@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # JSON file path
-json_file="mirror.json"
+json_file="/usr/local/bin/mirror.json"
 page_size=10
 current_page=1
 
@@ -75,7 +75,7 @@ fi
 # Check if mirror.json exists
 if [ ! -f "$json_file" ]; then
     echo "$(tput setaf 1)mirror.json not found. Downloading...$(tput sgr0)"
-    sudo wget -O "$json_file" "https://dl.irvm.org/mirror.json"
+    sudo wget -O "$json_file" "https://raw.githubusercontent.com/Arash-Ariaye/irvm-dns/refs/heads/main/mirror.json"
 
     # Re-run the script
     exec "$0" "$@"
