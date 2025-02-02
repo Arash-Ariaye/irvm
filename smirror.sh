@@ -22,7 +22,6 @@ mirrors=(
     "https://mirror.arvancloud.ir/ubuntu"
     "http://ir.archive.ubuntu.com/ubuntu"
     "https://ubuntu.parsvds.com/ubuntu/"
-    "http://mirror.hidata.org/ubuntu/"
 )
 
 # Function to measure download speed
