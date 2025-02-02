@@ -24,14 +24,14 @@ main_menu() {
     echo "Lotfan yeki az goruhaye DNS zir ra entekhab konid:"
     echo "1) DNS haye Irani"
     echo "2) DNS haye Khareji"
-    echo "3) Khoruj"
+    echo "0) Khoruj"
     echo "---------------------------------"
     read -p "Entekhab shoma: " main_choice
 
     case $main_choice in
         1) dns_menu "Irani" ;;
         2) dns_menu "Khareji" ;;
-        3) exit 0 ;;
+        0) exit 0 ;;
         *) echo "Entekhab namotabar ast. Lotfan dobare talash konid."; main_menu ;;
     esac
 }
