@@ -1,17 +1,32 @@
 #!/bin/bash
 
-# Your own server IP
-myip="91.107.180.29"
+# IP مجاز که نباید بلاک شود
+WHITELIST_IP="91.107.180.29"
 
-# Network interface
-iface="eth0"
+# فایل موقت برای ذخیره IP‌های پرترافیک
+TEMP_FILE="/tmp/top-ips.txt"
 
-# Packet capture and process
-tcpdump -i $iface -nn -c 10000 | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | awk '$1>500 {print $2}' | while read ip
-do
-  # Skip own IP
-  if [ "$ip" != "$myip" ]; then
-    echo "Blackholing $ip..."
-    ip route add blackhole $ip
-  fi
-done
+# گرفتن 20 IP با بیشترین ترافیک با tcpdump
+sudo tcpdump -i any -nn -c 5000 2>/dev/null | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 > "$TEMP_FILE"
+
+# بررسی و بلاک کردن IP‌ها
+while read count ip; do
+    # بررسی اینکه IP معتبر و غیرمجاز است و تعداد پکت‌ها بیشتر از 1000 است
+    if [ "$count" -gt 1000 ] && [ "$ip" != "$WHITELIST_IP" ] && [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        echo "Blocking IP $ip with $count packets."
+
+        # بلاک کردن کامل ترافیک ورودی، خروجی و فوروارد برای IP
+        sudo iptables -I INPUT -s "$ip" -j DROP
+        sudo iptables -I OUTPUT -d "$ip" -j DROP
+        sudo iptables -I FORWARD -s "$ip" -j DROP
+        sudo iptables -I FORWARD -d "$ip" -j DROP
+    fi
+done < "$TEMP_FILE"
+
+# ذخیره دائمی قوانین iptables
+sudo iptables-save > /etc/iptables/rules.v4
+
+# پاکسازی فایل موقت
+rm -f "$TEMP_FILE"
+
+echo "Script executed. High-traffic IPs blocked."
