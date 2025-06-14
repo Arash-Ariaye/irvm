@@ -1,32 +1,20 @@
 #!/bin/bash
 
-# IP مجاز که نباید بلاک شود
+# 白名单IP，不会被封锁
 WHITELIST_IP="91.107.180.29"
 
-# فایل موقت برای ذخیره IP‌های پرترافیک
-TEMP_FILE="/tmp/top-ips.txt"
-
-# ایجاد فایل موقت اگر وجود نداشته باشد
-touch "$TEMP_FILE" 2>/dev/null || { echo "Error: Cannot create $TEMP_FILE"; exit 1; }
-
-# گرفتن 20 IP با بیشترین ترافیک با tcpdump
-sudo tcpdump -i any -nn -c 5000 2>/dev/null | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 > "$TEMP_FILE"
-
-# بررسی و بلاک کردن IP‌ها
-while read count ip; do
-    # بررسی اینکه IP معتبر و غیرمجاز است و تعداد پکت‌ها بیشتر از 1000 است
+# 直接从tcpdump输出中读取前20个高流量IP
+sudo tcpdump -i any -nn -c 5000 2>/dev/null | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 | while read count ip; do
+    # 检查IP是否有效、不是白名单IP且数据包数超过1000
     if [ "$count" -gt 1000 ] && [ "$ip" != "$WHITELIST_IP" ] && [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         echo "Blocking IP $ip with $count packets."
 
-        # بلاک کردن کامل ترافیک ورودی، خروجی و فوروارد برای IP
+        # 完全封锁该IP的输入、输出和转发流量
         sudo iptables -I INPUT -s "$ip" -j DROP
         sudo iptables -I OUTPUT -d "$ip" -j DROP
         sudo iptables -I FORWARD -s "$ip" -j DROP
         sudo iptables -I FORWARD -d "$ip" -j DROP
     fi
-done < "$TEMP_FILE"
-
-# پاکسازی فایل موقت
-rm -f "$TEMP_FILE"
+done
 
 echo "Script executed. High-traffic IPs blocked."
