@@ -6,6 +6,9 @@ WHITELIST_IP="91.107.180.29"
 # فایل موقت برای ذخیره IP‌های پرترافیک
 TEMP_FILE="/tmp/top-ips.txt"
 
+# ایجاد فایل موقت اگر وجود نداشته باشد
+touch "$TEMP_FILE" 2>/dev/null || { echo "Error: Cannot create $TEMP_FILE"; exit 1; }
+
 # گرفتن 20 IP با بیشترین ترافیک با tcpdump
 sudo tcpdump -i any -nn -c 5000 2>/dev/null | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 > "$TEMP_FILE"
 
@@ -22,9 +25,6 @@ while read count ip; do
         sudo iptables -I FORWARD -d "$ip" -j DROP
     fi
 done < "$TEMP_FILE"
-
-# ذخیره دائمی قوانین iptables
-sudo iptables-save > /etc/iptables/rules.v4
 
 # پاکسازی فایل موقت
 rm -f "$TEMP_FILE"
