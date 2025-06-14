@@ -1,23 +1,17 @@
 #!/bin/bash
 
-# IP ke moshkeli nadare va bayad az block masoon bashe
-WHITELIST_IP="91.107.180.29"
+# Your own server IP
+myip="91.107.180.29"
 
-# Ejra-ye tcpdump va gereftan 20 ta IP ba bishtarin packet
-sudo tcpdump -i eth0 -nn -c 10000 | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 > /tmp/top-ips.txt
+# Network interface
+iface="eth0"
 
-# Khandan IP ha va barrasi
-while read count ip; do
-    # Agar tedad packet bala-ye 1000 bood va IP whitelist nabood
-    if [ "$count" -gt 1000 ] && [ "$ip" != "$WHITELIST_IP" ]; then
-        echo "Blocking IP $ip ba $count packet."
-
-        # Block kardan voroodi az in IP
-        sudo iptables -A INPUT -s $ip -j DROP
-
-        # Block kardan khoroji be in IP
-        sudo iptables -A OUTPUT -d $ip -j DROP
-    fi
-done < /tmp/top-ips.txt
-
-echo "Script ejra shod. IP haye portrafik block shodan."
+# Packet capture and process
+tcpdump -i $iface -nn -c 10000 | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | awk '$1>500 {print $2}' | while read ip
+do
+  # Skip own IP
+  if [ "$ip" != "$myip" ]; then
+    echo "Blackholing $ip..."
+    ip route add blackhole $ip
+  fi
+done
