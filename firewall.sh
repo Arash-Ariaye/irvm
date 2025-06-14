@@ -1,35 +1,23 @@
 #!/bin/bash
 
-# IP server khodet
-MY_IP="91.107.180.29"
+# IP ke moshkeli nadare va bayad az block masoon bashe
+WHITELIST_IP="91.107.180.29"
 
-# File movaghat baraye zakhire IP-ha
-TMP_IP_FILE="/tmp/blocked_ips.txt"
+# Ejra-ye tcpdump va gereftan 20 ta IP ba bishtarin packet
+sudo tcpdump -i eth0 -nn -c 10000 | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 > /tmp/top-ips.txt
 
-echo "[+] IP ha dar hale jam'avari hastan..."
-IP_LIST=$(sudo tcpdump -i eth0 -nn -c 10000 | awk '{print $3}' | cut -d'.' -f1-4 | sort | uniq -c | sort -nr | head -20 | awk '{print $2}' | grep -v "$MY_IP")
+# Khandan IP ha va barrasi
+while read count ip; do
+    # Agar tedad packet bala-ye 1000 bood va IP whitelist nabood
+    if [ "$count" -gt 1000 ] && [ "$ip" != "$WHITELIST_IP" ]; then
+        echo "Blocking IP $ip ba $count packet."
 
-# Save IP-ha dar file movaghat
-echo "$IP_LIST" > "$TMP_IP_FILE"
+        # Block kardan voroodi az in IP
+        sudo iptables -A INPUT -s $ip -j DROP
 
-echo "[+] Dar hale block kardan-e IP-ha..."
-for IP in $IP_LIST; do
-    sudo iptables -A INPUT -s $IP -j DROP
-    sudo iptables -A OUTPUT -d $IP -j DROP
-done
+        # Block kardan khoroji be in IP
+        sudo iptables -A OUTPUT -d $ip -j DROP
+    fi
+done < /tmp/top-ips.txt
 
-echo "[✓] IP-ha block shodan. Sabr kon 24 saat..."
-
-# 24 saat = 86400 saniye
-sleep 86400
-
-echo "[+] Dar hale hazf kardan-e rules..."
-for IP in $(cat "$TMP_IP_FILE"); do
-    sudo iptables -D INPUT -s $IP -j DROP
-    sudo iptables -D OUTPUT -d $IP -j DROP
-done
-
-# Delete file movaghat
-rm -f "$TMP_IP_FILE"
-
-echo "[✓] Hame chiz tamiz shod!"
+echo "Script ejra shod. IP haye portrafik block shodan."
