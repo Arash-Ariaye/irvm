@@ -5,7 +5,7 @@ SCRIPT_PATH="/root/restart-backhauls.sh"
 
 # Create file and write the script inside
 echo '#!/bin/bash
-systemctl list-unit-files | grep "backhaul-ir" | awk "{print \$1}" | while read svc; do
+systemctl list-unit-files | grep "backhaul-" | awk "{print \$1}" | while read svc; do
     systemctl restart "$svc"
 done' > "$SCRIPT_PATH"
 
